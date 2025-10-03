@@ -5,7 +5,8 @@ import cloudinary from "../config/cloudinary.js";
 // Configure multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "src/uploads/");
+    const uploadPath = process.env.UPLOAD_PATH || "src/uploads/";
+    cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
