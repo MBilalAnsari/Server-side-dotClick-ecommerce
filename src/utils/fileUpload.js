@@ -2,17 +2,8 @@ import multer from "multer";
 import path from "path";
 import cloudinary from "../config/cloudinary.js";
 
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadPath = process.env.UPLOAD_PATH || "src/uploads/";
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// Configure multer for Vercel (serverless) environment
+const storage = multer.memoryStorage(); // Use memory storage instead of disk
 
 // File filter for images only
 const fileFilter = (req, file, cb) => {
@@ -34,17 +25,19 @@ export const upload = multer({
 // Custom middleware to handle both file uploads and form data
 export const uploadFields = (fields) => {
   return (req, res, next) => {
-    // First, try to parse as multipart form data
+    // Use multer with memory storage for Vercel compatibility
     upload.fields(fields)(req, res, (err) => {
       if (err) {
-        // If multer fails, try to parse as regular form data
-        if (err.code === 'LIMIT_UNEXPECTED_FILE' || !req.files) {
-          // No files uploaded, but might have other form fields
-          console.log('SERVER - No files uploaded, parsing as regular form data');
+        // Handle multer errors gracefully
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ message: "File too large. Maximum size is 5MB." });
+        }
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          console.log('No files uploaded, parsing as regular form data');
           next();
           return;
         }
-        return next(err);
+        return res.status(400).json({ message: err.message });
       }
       next();
     });
@@ -55,43 +48,28 @@ export const uploadToCloudinary = async (fileInput) => {
   let uploadedUrl = null;
 
   try {
-    if (!fileInput || !fileInput.path) {
-      throw new Error("Invalid file input - no file path provided");
+    if (!fileInput || !fileInput.buffer) {
+      throw new Error("Invalid file input - no file buffer provided");
     }
 
-    // Read file from path and convert to base64
-    const fs = await import('fs');
-    const fileBuffer = fs.readFileSync(fileInput.path);
-    const base64Image = fileBuffer.toString("base64");
+    // Convert buffer to base64 for Vercel compatibility
+    const base64Image = fileInput.buffer.toString("base64");
     const dataUri = `data:${fileInput.mimetype};base64,${base64Image}`;
 
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: process.env.CLOUDINARY_FOLDER || "ecommerce-profiles",
+      folder: process.env.CLOUDINARY_FOLDER || "ecommerce-products",
       transformation: [
-        { width: 500, height: 500, crop: "limit" },
+        { width: 800, height: 800, crop: "limit" },
         { quality: "auto" },
       ],
     });
 
     uploadedUrl = result.secure_url;
-    // console.log("Image uploaded to Cloudinary:", uploadedUrl);
+    console.log("Image uploaded to Cloudinary:", uploadedUrl);
 
     return uploadedUrl;
   } catch (err) {
     console.error("Upload Error:", err.message);
     return null;
-  } finally {
-    // Always try to delete local file
-    try {
-      if (fileInput && fileInput.path) {
-        const fs = await import('fs');
-        if (fs.existsSync(fileInput.path)) {
-          fs.unlinkSync(fileInput.path);
-          console.log("Local file deleted:", fileInput.path);
-        }
-      }
-    } catch (deleteError) {
-      console.error("Error deleting local file:", deleteError.message);
-    }
   }
 };

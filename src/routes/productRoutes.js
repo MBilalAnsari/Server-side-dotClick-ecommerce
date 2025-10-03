@@ -10,10 +10,21 @@ router.post("/", protect, admin, upload.array("productImages", 5), createProduct
 router.get("/", getProducts); // Get All Products (filters, sort, pagination)
 router.get("/:slug", getProductBySlug); // Get Product by Slug
 router.get("/id/:id", protect, admin, getProductById);
-// Handle both file uploads and form data updates - now handles cases with no files
-router.put("/:id", protect, admin, uploadFields([
-  { name: "productImages", maxCount: 5 }
-]), updateProduct); // Update Product - handles both files and form data
+
+// Update Product - handle both files and form data properly
+router.put("/:id", protect, admin, (req, res, next) => {
+  // Check if files are being uploaded
+  if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+    // Use upload middleware for file uploads
+    return uploadFields([
+      { name: "productImages", maxCount: 5 }
+    ])(req, res, next);
+  } else {
+    // Skip upload middleware for regular form data
+    next();
+  }
+}, updateProduct);
+
 router.delete("/:id", protect, admin, deleteProduct); // Delete Product
 
 export default router;
