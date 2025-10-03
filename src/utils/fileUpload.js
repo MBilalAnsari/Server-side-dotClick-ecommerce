@@ -27,7 +27,7 @@ export const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // 5MB default
   },
 });
 
@@ -66,7 +66,7 @@ export const uploadToCloudinary = async (fileInput) => {
     const dataUri = `data:${fileInput.mimetype};base64,${base64Image}`;
 
     const result = await cloudinary.uploader.upload(dataUri, {
-      folder: "ecommerce-profiles",
+      folder: process.env.CLOUDINARY_FOLDER || "ecommerce-profiles",
       transformation: [
         { width: 500, height: 500, crop: "limit" },
         { quality: "auto" },

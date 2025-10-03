@@ -2,21 +2,14 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 dotenv.config();
 
+// Use native promises
+mongoose.Promise = global.Promise;
+
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      // serverSelectionTimeoutMS: 30000, // 30 seconds
-      // socketTimeoutMS: 45000, // 45 seconds
-      // bufferCommands: false,
-      // bufferMaxEntries: 0,
-      // maxPoolSize: 10, // Maintain up to 10 socket connections
-      // minPoolSize: 5, // Maintain a minimum of 5 socket connections
-      // maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      // retryWrites: true,
-      // w: 'majority'
-    });
+    const conn = await mongoose.connect(process.env.MONGO_URI);
 
-    console.log(`!...MongoDB Connected:`);
+    console.log(`!...MongoDB Connected ✅`);
 
     // Handle connection events
     mongoose.connection.on('error', (err) => {
@@ -35,6 +28,6 @@ const connectDB = async () => {
     console.error(`Error: ${error.message}`);
     process.exit(1);
   }
-};
+}; 
 
 export default connectDB;
