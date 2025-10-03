@@ -4,40 +4,18 @@ import { uploadToCloudinary } from "../utils/fileUpload.js";
 
 export const createProduct = async (req, res) => {
   try {
-    console.log('=== CREATE PRODUCT DEBUG ===')
-    console.log('Request body keys:', Object.keys(req.body))
-    console.log('Request body:', req.body)
-    console.log('Size field:', req.body.size)
-    console.log('Size[] field:', req.body['size[]'])
 
     const { name, description, tags, category, price, colours, size, totalStock, isTrending, popularity } = req.body;
-
-    console.log('Destructured size:', size) // Debug log
-    console.log('Destructured size type:', typeof size) // Debug log
-    console.log('Destructured size is array:', Array.isArray(size)) // Debug log
-
-    console.log('Destructured colours:', colours) // Debug log
-    console.log('Destructured colours type:', typeof colours) // Debug log
-    console.log('Destructured colours is array:', Array.isArray(colours)) // Debug log
-
     // Handle multiple image uploads
     let images = [];
-    console.log('=== IMAGE UPLOAD DEBUG ===')
-    console.log('req.files:', req.files)
-    console.log('req.files type:', typeof req.files)
-    console.log('req.files length:', req.files ? req.files.length : 'undefined')
+    
 
     if (req.files && req.files.length > 0) {
-      console.log("Uploading product images:", req.files.length);
-
       for (const file of req.files) {
-        console.log('Processing file:', file.originalname, 'path:', file.path)
         const imageUrl = await uploadToCloudinary(file);
         if (imageUrl) {
           images.push(imageUrl);
-          console.log('Successfully uploaded image:', imageUrl)
         } else {
-          console.error("Image upload failed for file:", file.originalname);
           return res.status(400).json({ message: "Image upload failed for one or more files" });
         }
       }
@@ -58,11 +36,6 @@ export const createProduct = async (req, res) => {
         sizeArray = ['md']; // default fallback
       }
     } else if (req.body['size[]']) {
-      // Handle FormData array format
-      console.log('Found size[] field:', req.body['size[]'])
-      console.log('size[] type:', typeof req.body['size[]'])
-      console.log('size[] is array:', Array.isArray(req.body['size[]']))
-
       if (Array.isArray(req.body['size[]'])) {
         sizeArray = req.body['size[]'];
       } else {
@@ -72,7 +45,6 @@ export const createProduct = async (req, res) => {
       sizeArray = ['md']; // default fallback
     }
 
-    console.log('Final size array for create:', sizeArray) // Debug log
 
     // Ensure colours is an array - handle FormData format
     let coloursArray = [];
@@ -85,11 +57,6 @@ export const createProduct = async (req, res) => {
         coloursArray = ['default']; // default fallback
       }
     } else if (req.body['colours[]']) {
-      // Handle FormData array format
-      console.log('Found colours[] field:', req.body['colours[]'])
-      console.log('colours[] type:', typeof req.body['colours[]'])
-      console.log('colours[] is array:', Array.isArray(req.body['colours[]']))
-
       if (Array.isArray(req.body['colours[]'])) {
         coloursArray = req.body['colours[]'];
       } else {
@@ -99,7 +66,6 @@ export const createProduct = async (req, res) => {
       coloursArray = ['default']; // default fallback
     }
 
-    console.log('Final colours array for create:', coloursArray) // Debug log
 
     const product = await Product.create({
       name,
@@ -116,7 +82,6 @@ export const createProduct = async (req, res) => {
       popularity,
     });
 
-    console.log("Product created successfully:", product.name, "with sizes:", product.size);
     res.status(201).json(product);
   } catch (error) {
     console.error("Create product error:", error);
